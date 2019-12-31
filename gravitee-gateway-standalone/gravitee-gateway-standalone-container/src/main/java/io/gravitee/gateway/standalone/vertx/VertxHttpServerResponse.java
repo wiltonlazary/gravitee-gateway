@@ -20,6 +20,7 @@ import io.gravitee.common.http.HttpHeadersValues;
 import io.gravitee.gateway.api.Response;
 import io.gravitee.gateway.api.buffer.Buffer;
 import io.gravitee.gateway.api.handler.Handler;
+import io.gravitee.gateway.api.http2.HttpFrame;
 import io.gravitee.gateway.api.stream.WriteStream;
 import io.gravitee.reporter.api.http.Metrics;
 import io.netty.buffer.ByteBuf;
@@ -36,6 +37,8 @@ public class VertxHttpServerResponse implements Response {
     private final HttpServerResponse httpServerResponse;
 
     private final HttpHeaders headers = new HttpHeaders();
+
+    private HttpHeaders trailers;
 
     private final Metrics metrics;
 
@@ -82,6 +85,14 @@ public class VertxHttpServerResponse implements Response {
     }
 
     @Override
+    public HttpHeaders trailers() {
+        if (trailers == null) {
+            trailers = new HttpHeaders();
+        }
+        return trailers;
+    }
+
+    @Override
     public Response write(Buffer chunk) {
         if (valid()) {
             if (!httpServerResponse.headWritten()) {
@@ -125,6 +136,10 @@ public class VertxHttpServerResponse implements Response {
                 writeHeaders();
             }
 
+            if (trailers != null) {
+                trailers.forEach(httpServerResponse::putTrailer);
+            }
+
             httpServerResponse.end();
         }
     }
@@ -144,5 +159,13 @@ public class VertxHttpServerResponse implements Response {
                 httpServerResponse.putHeader(headerName, headerValues);
             }
         });
+    }
+
+    @Override
+    public Response writeCustomFrame(HttpFrame frame) {
+        httpServerResponse.writeCustomFrame(frame.type(), frame.flags(),
+                io.vertx.core.buffer.Buffer.buffer(frame.payload().getBytes()));
+
+        return this;
     }
 }

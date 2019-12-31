@@ -108,12 +108,14 @@ public class ApiReactorHandler extends AbstractReactorHandler {
             final ExecutionContext context,
             final StreamableProcessor<ExecutionContext, Buffer> chain) {
 
-        // Call an invoker to get a proxy connection (connection to an underlying backend, mainly HTTP)
+        // Call an invoker to get a proxy connection (connection to an underlying backend, default to HTTP)
         Invoker upstreamInvoker = (Invoker) context.getAttribute(ExecutionContext.ATTR_INVOKER);
 
         context.request().metrics().setApiResponseTimeMs(System.currentTimeMillis());
 
         upstreamInvoker.invoke(context, chain, connection -> {
+            context.request().customFrameHandler(connection::writeCustomFrame);
+
             connection.responseHandler(proxyResponse -> handleProxyResponse(context, proxyResponse));
 
             // Override the stream error handler to be able to cancel connection to backend
@@ -162,6 +164,9 @@ public class ApiReactorHandler extends AbstractReactorHandler {
         proxyResponse.headers().forEach((headerName, headerValues) -> context.response().headers().put(headerName, headerValues));
 
         final StreamableProcessor<ExecutionContext, Buffer> chain = responseProcessorChain.create();
+
+        // For HTTP/2, plug custom frame handler from upstream response to server response
+        proxyResponse.customFrameHandler(frame -> context.response().writeCustomFrame(frame));
 
         chain
                 .errorHandler(failure -> handleError(context, failure))

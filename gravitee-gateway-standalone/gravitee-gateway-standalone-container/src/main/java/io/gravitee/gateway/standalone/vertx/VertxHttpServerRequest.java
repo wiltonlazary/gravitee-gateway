@@ -25,6 +25,7 @@ import io.gravitee.common.utils.UUID;
 import io.gravitee.gateway.api.Request;
 import io.gravitee.gateway.api.buffer.Buffer;
 import io.gravitee.gateway.api.handler.Handler;
+import io.gravitee.gateway.api.http2.HttpFrame;
 import io.gravitee.gateway.api.ws.WebSocket;
 import io.gravitee.reporter.api.http.Metrics;
 import io.vertx.core.MultiMap;
@@ -60,6 +61,7 @@ public class VertxHttpServerRequest implements Request {
 
     public VertxHttpServerRequest(HttpServerRequest httpServerRequest, boolean legacyDecodeUrlParams) {
         this.httpServerRequest = httpServerRequest;
+        this.httpServerRequest.ver
         this.timestamp = System.currentTimeMillis();
         this.id = UUID.toString(UUID.random());
         this.legacyDecodeUrlParams = legacyDecodeUrlParams;
@@ -240,5 +242,13 @@ public class VertxHttpServerRequest implements Request {
     @Override
     public WebSocket websocket() {
         throw new IllegalStateException();
+    }
+
+    @Override
+    public Request customFrameHandler(Handler<HttpFrame> frameHandler) {
+        httpServerRequest.customFrameHandler(frame -> frameHandler.handle(
+                HttpFrame.create(frame.type(), frame.flags(), Buffer.buffer(frame.payload().getBytes()))));
+
+        return this;
     }
 }

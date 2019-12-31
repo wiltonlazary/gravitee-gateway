@@ -13,11 +13,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.gravitee.gateway.http.connector;
+package io.gravitee.gateway.http.connector.http;
 
 import io.gravitee.common.http.HttpHeaders;
 import io.gravitee.gateway.api.buffer.Buffer;
 import io.gravitee.gateway.api.handler.Handler;
+import io.gravitee.gateway.api.http2.HttpFrame;
 import io.gravitee.gateway.api.proxy.ProxyResponse;
 import io.gravitee.gateway.api.stream.ReadStream;
 import io.vertx.core.http.HttpClientResponse;
@@ -26,15 +27,16 @@ import io.vertx.core.http.HttpClientResponse;
  * @author David BRASSELY (david.brassely at graviteesource.com)
  * @author GraviteeSource Team
  */
-class VertxProxyResponse implements ProxyResponse {
+class HttpProxyResponse implements ProxyResponse {
 
     private Handler<Buffer> bodyHandler;
     private Handler<Void> endHandler;
+    private Handler<HttpFrame> frameHandler;
 
     private final HttpHeaders httpHeaders = new HttpHeaders();
     private final HttpClientResponse httpClientResponse;
 
-    VertxProxyResponse(final HttpClientResponse httpClientResponse) {
+    HttpProxyResponse(final HttpClientResponse httpClientResponse) {
         this.httpClientResponse = httpClientResponse;
     }
 
@@ -83,5 +85,17 @@ class VertxProxyResponse implements ProxyResponse {
     public ReadStream<Buffer> resume() {
         httpClientResponse.resume();
         return this;
+    }
+
+    @Override
+    public ProxyResponse customFrameHandler(Handler<HttpFrame> frameHandler) {
+        this.frameHandler = frameHandler;
+        return this;
+    }
+
+    void writeCustomFrame(HttpFrame frame) {
+        if (frameHandler != null) {
+            frameHandler.handle(frame);
+        }
     }
 }

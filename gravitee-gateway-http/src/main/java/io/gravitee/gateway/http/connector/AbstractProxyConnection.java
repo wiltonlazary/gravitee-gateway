@@ -13,39 +13,37 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.gravitee.gateway.http.connector.ws;
+package io.gravitee.gateway.http.connector;
 
-import io.gravitee.gateway.api.buffer.Buffer;
+import io.gravitee.definition.model.endpoint.HttpEndpoint;
 import io.gravitee.gateway.api.handler.Handler;
 import io.gravitee.gateway.api.proxy.ProxyConnection;
 import io.gravitee.gateway.api.proxy.ProxyResponse;
-import io.gravitee.gateway.api.stream.WriteStream;
+import io.vertx.core.http.HttpClient;
 
 /**
  * @author David BRASSELY (david.brassely at graviteesource.com)
  * @author GraviteeSource Team
  */
-public class VertxWebSocketProxyConnection implements ProxyConnection {
+public abstract class AbstractProxyConnection implements ProxyConnection {
 
-    private Handler<ProxyResponse> responseHandler;
+    protected final HttpEndpoint endpoint;
+    protected Handler<ProxyResponse> responseHandler;
 
-    @Override
-    public VertxWebSocketProxyConnection responseHandler(Handler<ProxyResponse> responseHandler) {
-        this.responseHandler = responseHandler;
-        return this;
+    public AbstractProxyConnection(HttpEndpoint endpoint) {
+        this.endpoint = endpoint;
     }
 
-    public void handleResponse(ProxyResponse proxyResponse) {
+    public abstract ProxyConnection connect(
+            HttpClient httpClient, int port, String host, String uri);
+
+    protected void sendToClient(ProxyResponse proxyResponse) {
         this.responseHandler.handle(proxyResponse);
     }
 
     @Override
-    public WriteStream<Buffer> write(Buffer content) {
+    public ProxyConnection responseHandler(Handler<ProxyResponse> responseHandler) {
+        this.responseHandler = responseHandler;
         return this;
-    }
-
-    @Override
-    public void end() {
-
     }
 }

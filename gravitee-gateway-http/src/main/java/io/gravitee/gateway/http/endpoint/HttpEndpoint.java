@@ -24,7 +24,7 @@ import io.gravitee.gateway.api.Connector;
  */
 public class HttpEndpoint implements io.gravitee.gateway.api.endpoint.Endpoint {
 
-    private final io.gravitee.definition.model.endpoint.HttpEndpoint endpoint;
+    private final io.gravitee.definition.model.Endpoint endpoint;
     private final Connector connector;
 
     public HttpEndpoint(final io.gravitee.definition.model.endpoint.HttpEndpoint endpoint, final Connector connector) {

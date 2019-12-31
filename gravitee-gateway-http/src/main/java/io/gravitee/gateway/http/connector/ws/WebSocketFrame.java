@@ -16,17 +16,16 @@
 package io.gravitee.gateway.http.connector.ws;
 
 import io.gravitee.gateway.api.buffer.Buffer;
-import io.gravitee.gateway.api.ws.WebSocketFrame;
 
 /**
  * @author David BRASSELY (david.brassely at graviteesource.com)
  * @author GraviteeSource Team
  */
-public class VertxWebSocketFrame implements WebSocketFrame {
+public class WebSocketFrame implements io.gravitee.gateway.api.ws.WebSocketFrame {
 
     private final io.vertx.core.http.WebSocketFrame frame;
 
-    public VertxWebSocketFrame(io.vertx.core.http.WebSocketFrame frame) {
+    public WebSocketFrame(io.vertx.core.http.WebSocketFrame frame) {
         this.frame = frame;
     }
 
