@@ -116,14 +116,17 @@ public abstract class AbstractConnector<T extends HttpEndpoint> extends Abstract
         connection.connect(client, port, uri.getHost(),
                 (uri.getRawQuery() == null) ? uri.getRawPath() : uri.getRawPath() + '?' + uri.getRawQuery());
 
-        return new ProxyConnectionRequestCounter(connection);
+        return new ProxyConnectionRequestTracker(connection);
     }
 
-    public class ProxyConnectionRequestCounter implements ProxyConnection {
+    /**
+     * This decorator is used to track running requests for the graceful shutdown purpose
+     */
+    public class ProxyConnectionRequestTracker implements ProxyConnection {
 
         private final ProxyConnection connection;
 
-        ProxyConnectionRequestCounter(ProxyConnection connection) {
+        ProxyConnectionRequestTracker(ProxyConnection connection) {
             this.connection = connection;
         }
 
