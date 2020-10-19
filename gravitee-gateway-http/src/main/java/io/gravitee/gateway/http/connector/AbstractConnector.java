@@ -28,8 +28,13 @@ import io.gravitee.definition.model.ssl.pem.PEMTrustStore;
 import io.gravitee.definition.model.ssl.pkcs12.PKCS12KeyStore;
 import io.gravitee.definition.model.ssl.pkcs12.PKCS12TrustStore;
 import io.gravitee.gateway.api.Connector;
+import io.gravitee.gateway.api.buffer.Buffer;
+import io.gravitee.gateway.api.handler.Handler;
+import io.gravitee.gateway.api.http2.HttpFrame;
 import io.gravitee.gateway.api.proxy.ProxyConnection;
 import io.gravitee.gateway.api.proxy.ProxyRequest;
+import io.gravitee.gateway.api.proxy.ProxyResponse;
+import io.gravitee.gateway.api.stream.WriteStream;
 import io.gravitee.gateway.core.endpoint.EndpointException;
 import io.vertx.core.Context;
 import io.vertx.core.Vertx;
@@ -77,7 +82,7 @@ public abstract class AbstractConnector<T extends HttpEndpoint> extends Abstract
 
     private final Map<Context, HttpClient> httpClients = new HashMap<>();
 
-    private AtomicInteger runningRequests = new AtomicInteger(0);
+    private final AtomicInteger runningRequests = new AtomicInteger(0);
 
     @Override
     public ProxyConnection request(ProxyRequest proxyRequest) {
@@ -108,8 +113,78 @@ public abstract class AbstractConnector<T extends HttpEndpoint> extends Abstract
         runningRequests.incrementAndGet();
 
         // Connect to the upstream
-        return connection.connect(client, port, uri.getHost(),
+        connection.connect(client, port, uri.getHost(),
                 (uri.getRawQuery() == null) ? uri.getRawPath() : uri.getRawPath() + '?' + uri.getRawQuery());
+
+        return new ProxyConnectionRequestCounter(connection);
+    }
+
+    public class ProxyConnectionRequestCounter implements ProxyConnection {
+
+        private final ProxyConnection connection;
+
+        ProxyConnectionRequestCounter(ProxyConnection connection) {
+            this.connection = connection;
+        }
+
+        @Override
+        public WriteStream<Buffer> write(Buffer buffer) {
+            connection.write(buffer);
+            return this;
+        }
+
+        @Override
+        public void end() {
+            connection.end();
+        }
+
+        @Override
+        public void end(Buffer buffer) {
+            connection.end(buffer);
+        }
+
+        @Override
+        public WriteStream<Buffer> drainHandler(Handler<Void> drainHandler) {
+            connection.drainHandler(drainHandler);
+            return this;
+        }
+
+        @Override
+        public boolean writeQueueFull() {
+            return connection.writeQueueFull();
+        }
+
+        @Override
+        public ProxyConnection writeCustomFrame(HttpFrame frame) {
+            connection.writeCustomFrame(frame);
+            return this;
+        }
+
+        @Override
+        public ProxyConnection cancel() {
+            connection.cancel();
+            return this;
+        }
+
+        @Override
+        public ProxyConnection exceptionHandler(Handler<Throwable> exceptionHandler) {
+            connection.exceptionHandler(proxyResponse -> {
+                runningRequests.decrementAndGet();
+                exceptionHandler.handle(proxyResponse);
+            });
+
+            return this;
+        }
+
+        @Override
+        public ProxyConnection responseHandler(Handler<ProxyResponse> responseHandler) {
+            connection.responseHandler(proxyResponse -> {
+                runningRequests.decrementAndGet();
+                responseHandler.handle(proxyResponse);
+            });
+
+            return this;
+        }
     }
 
     protected abstract AbstractHttpProxyConnection create(ProxyRequest proxyRequest);
