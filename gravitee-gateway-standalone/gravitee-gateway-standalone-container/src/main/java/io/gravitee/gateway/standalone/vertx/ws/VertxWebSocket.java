@@ -40,8 +40,12 @@ class VertxWebSocket implements WebSocket {
 
     @Override
     public WebSocket upgrade() {
-        websocket = httpServerRequest.upgrade();
-        upgraded = true;
+        httpServerRequest.toWebSocket(event -> {
+            if (event.succeeded()) {
+                websocket = event.result();
+                upgraded = true;
+            }
+        });
         return this;
     }
 

@@ -56,7 +56,6 @@ public class StreamFailGatewayTest extends AbstractWiremockGatewayTest {
         assertEquals(HttpStatus.SC_INTERNAL_SERVER_ERROR, response.getStatusLine().getStatusCode());
 
         String responseContent = StringUtils.copy(response.getEntity().getContent());
-        String [] parts = responseContent.split(":");
 
         assertEquals("{\"message\":\"stream-fail\",\"http_status_code\":500}", responseContent);
 
@@ -76,7 +75,6 @@ public class StreamFailGatewayTest extends AbstractWiremockGatewayTest {
         assertEquals(HttpStatus.SC_INTERNAL_SERVER_ERROR, response.getStatusLine().getStatusCode());
 
         String responseContent = StringUtils.copy(response.getEntity().getContent());
-        String [] parts = responseContent.split(":");
 
         assertEquals("stream-fail", responseContent);
 

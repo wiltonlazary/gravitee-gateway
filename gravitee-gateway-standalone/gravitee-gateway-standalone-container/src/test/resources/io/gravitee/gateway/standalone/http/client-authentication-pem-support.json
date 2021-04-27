@@ -1,7 +1,6 @@
 {
   "id": "api-test",
   "name": "api-test",
-
   "proxy": {
     "context_path": "/test",
     "endpoints": [
@@ -15,8 +14,7 @@
           "trustAll": false,
           "keyStore": {
             "type": "PEM",
-            "path": "Defined programmatically",
-            "password": "password"
+            "certPath": "Defined programmatically"
           }
         }
       }, {
@@ -26,7 +24,7 @@
           "trustAll": true,
           "keyStore": {
             "type": "PEM",
-            "path": "Defined programmatically"
+            "certPath": "Defined programmatically"
           },
           "trustStore": {
             "type": "PEM",
@@ -40,14 +38,13 @@
           "trustAll": true,
           "keyStore": {
             "type": "PEM",
-            "path": "Defined programmatically"
+            "certPath": "Defined programmatically"
           }
         }
       }
     ],
     "strip_context_path": false
   },
-
   "paths": {
     "/*": [
     ]

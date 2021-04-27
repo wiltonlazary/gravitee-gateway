@@ -17,12 +17,15 @@ package io.gravitee.gateway.services.sync.subscriptions.handler;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.gravitee.common.http.HttpHeaders;
 import io.gravitee.common.http.HttpStatusCode;
 import io.gravitee.common.http.MediaType;
+import io.gravitee.gateway.services.sync.apikeys.handler.ApiKeysServiceHandler;
 import io.vertx.core.Handler;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.core.json.Json;
+import io.vertx.core.json.jackson.DatabindCodec;
 import io.vertx.ext.web.RoutingContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -51,8 +54,9 @@ public class SubscriptionsServiceHandler implements Handler<RoutingContext> {
         response.setChunked(true);
 
         try {
-            Json.prettyMapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
-            response.write(Json.prettyMapper.writeValueAsString(new ExecutorStatistics()));
+            final ObjectMapper objectMapper = DatabindCodec.prettyMapper();
+            objectMapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
+            response.write(objectMapper.writeValueAsString(new ExecutorStatistics()));
         } catch (JsonProcessingException jpe) {
             response.setStatusCode(HttpStatusCode.INTERNAL_SERVER_ERROR_500);
             LOGGER.error("Unable to transform data object to JSON", jpe);

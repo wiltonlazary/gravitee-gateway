@@ -22,11 +22,14 @@ import io.gravitee.gateway.standalone.AbstractGatewayTest;
 import io.gravitee.gateway.standalone.junit.annotation.ApiDescriptor;
 import io.gravitee.gateway.standalone.junit.rules.ApiDeployer;
 import io.grpc.ManagedChannel;
+import io.grpc.Status;
+import io.grpc.stub.ClientCallStreamObserver;
+import io.grpc.stub.ClientResponseObserver;
+import io.grpc.stub.StreamObserver;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
 import io.vertx.core.VertxOptions;
-import io.vertx.grpc.GrpcBidiExchange;
 import io.vertx.grpc.VertxChannelBuilder;
 import io.vertx.grpc.VertxServer;
 import io.vertx.grpc.VertxServerBuilder;
@@ -45,30 +48,50 @@ import java.util.concurrent.TimeUnit;
  * @author GraviteeSource Team
  */
 @ApiDescriptor("/io/gravitee/gateway/standalone/grpc/streaming-greeter.json")
-public class GrpcStreamingGreeterTest extends AbstractGatewayTest {
+public class GrpcServerStreamingTest extends AbstractGatewayTest {
 
     @Rule
     public final TestRule chain = RuleChain.outerRule(new ApiDeployer(this));
 
+    private static final int STREAM_MESSAGE_NUMBER = 3;
+    private static final long STREAM_SLEEP_MILLIS = 10;
+
     @Test
     public void simple_grpc_request() throws InterruptedException {
-        Vertx vertx = Vertx.vertx(new VertxOptions().setPreferNativeTransport(true));
+        Vertx vertx = Vertx.vertx();
 
         // Prepare gRPC Server
-        StreamingGreeterGrpc.StreamingGreeterVertxImplBase service = new StreamingGreeterGrpc.StreamingGreeterVertxImplBase() {
-
-            private int counter = 3;
+        StreamingGreeterGrpc.StreamingGreeterImplBase service = new StreamingGreeterGrpc.StreamingGreeterImplBase() {
 
             @Override
-            public void sayHelloStreaming(GrpcBidiExchange<io.gravitee.gateway.grpc.manualflowcontrol.HelloRequest, io.gravitee.gateway.grpc.manualflowcontrol.HelloReply> exchange) {
-                exchange.handler(event -> {
-                    exchange.write(HelloReply.newBuilder().setMessage("Hello " + event.getName()).build());
+            public StreamObserver<io.gravitee.gateway.grpc.manualflowcontrol.HelloRequest> sayHelloStreaming(StreamObserver<io.gravitee.gateway.grpc.manualflowcontrol.HelloReply> responseObserver) {
 
-                    if (--counter == 0) {
-                        exchange.end();
+                return new StreamObserver<>() {
+                    @Override
+                    public void onNext(io.gravitee.gateway.grpc.manualflowcontrol.HelloRequest helloRequest) {
+                        for (int i = 0; i < STREAM_MESSAGE_NUMBER; i++) {
+                            HelloReply helloReply = HelloReply.newBuilder()
+                                    .setMessage("Hello " + helloRequest.getName() + " part " + i)
+                                    .build();
+                            responseObserver.onNext(helloReply);
+
+                            try {
+                                Thread.sleep(STREAM_SLEEP_MILLIS);
+                            } catch (InterruptedException e) {
+                                responseObserver.onError(Status.ABORTED.asException());
+                            }
+                        }
+                        responseObserver.onCompleted();
                     }
-                }).endHandler(event -> {
-                });
+
+                    @Override
+                    public void onError(Throwable throwable) {
+                    }
+
+                    @Override
+                    public void onCompleted() {
+                    }
+                };
             }
         };
 
@@ -83,36 +106,34 @@ public class GrpcStreamingGreeterTest extends AbstractGatewayTest {
         // Prepare gRPC Client
         ManagedChannel channel = VertxChannelBuilder
                 .forAddress(vertx, "localhost", 8082)
-                .usePlaintext(true)
+                .usePlaintext()
                 .build();
 
         // Start is asynchronous
-        rpcServer.start(new Handler<AsyncResult<Void>>() {
+        rpcServer.start(new Handler<>() {
             @Override
             public void handle(AsyncResult<Void> event) {
                 // Get a stub to use for interacting with the remote service
-                StreamingGreeterGrpc.StreamingGreeterVertxStub stub = StreamingGreeterGrpc.newVertxStub(channel);
+                StreamingGreeterGrpc.StreamingGreeterStub stub = StreamingGreeterGrpc.newStub(channel);
 
                 // Call the remote service
-                stub.sayHelloStreaming(new Handler<GrpcBidiExchange<HelloReply, io.gravitee.gateway.grpc.manualflowcontrol.HelloRequest>>() {
-
-                    private int counter = 3;
+                StreamObserver<HelloRequest> requestStreamObserver = stub.sayHelloStreaming(new StreamObserver<>() {
+                    @Override
+                    public void onNext(HelloReply helloReply) {
+                    }
 
                     @Override
-                    public void handle(GrpcBidiExchange<HelloReply, io.gravitee.gateway.grpc.manualflowcontrol.HelloRequest> event) {
-                        // Adding a latency to simulate multi calls to grpc service
-                        long id = vertx.setPeriodic(1000, periodic -> event.write(HelloRequest.newBuilder().setName("David").build()));
+                    public void onError(Throwable throwable) {
+                        Assert.fail();
+                    }
 
-                        event.handler(reply -> {
-                            counter--;
-
-                            if (counter == 0) {
-                                vertx.cancelTimer(id);
-                                event.end();
-                            }
-                        }).endHandler(event1 -> latch.countDown());
+                    @Override
+                    public void onCompleted() {
+                        latch.countDown();
                     }
                 });
+
+                requestStreamObserver.onNext(HelloRequest.newBuilder().setName("David").build());
             }
         });
 

@@ -29,6 +29,7 @@ import io.gravitee.definition.model.ssl.pem.PEMTrustStore;
 import io.gravitee.definition.model.ssl.pkcs12.PKCS12KeyStore;
 import io.gravitee.definition.model.ssl.pkcs12.PKCS12TrustStore;
 import io.gravitee.gateway.api.Connector;
+import io.gravitee.gateway.api.handler.Handler;
 import io.gravitee.gateway.api.proxy.ProxyConnection;
 import io.gravitee.gateway.api.proxy.ProxyRequest;
 import io.gravitee.gateway.core.endpoint.EndpointException;
@@ -43,7 +44,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.env.Environment;
 
-import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLConnection;
@@ -99,12 +99,12 @@ public abstract class AbstractConnector<T extends HttpEndpoint> extends Abstract
         this.endpoint = endpoint;
     }
 
-    private final Map<Context, HttpClient> httpClients = new ConcurrentHashMap<>();
+    private final Map<Thread, HttpClient> httpClients = new ConcurrentHashMap<>();
 
     private final AtomicInteger requestTracker = new AtomicInteger(0);
 
     @Override
-    public ProxyConnection request(ProxyRequest proxyRequest) {
+    public void request(ProxyRequest proxyRequest, Handler<ProxyConnection> proxyConnectionHandler) {
         // For Vertx HTTP client query parameters have to be passed along the URI
         final String uri = appendQueryParameters(proxyRequest.uri(), proxyRequest.parameters());
 
@@ -133,14 +133,19 @@ public abstract class AbstractConnector<T extends HttpEndpoint> extends Abstract
             final AbstractHttpProxyConnection connection = create(proxyRequest);
 
             // Grab an instance of the HTTP client
-            final HttpClient client = httpClients.computeIfAbsent(Vertx.currentContext(), createHttpClient());
+            final HttpClient client = httpClients.computeIfAbsent(Thread.currentThread(), createHttpClient());
 
             requestTracker.incrementAndGet();
 
             // Connect to the upstream
-            return connection.connect(client, port, url.getHost(),
+            connection.connect(client, port, url.getHost(),
                     (url.getQuery() == null) ? url.getPath() : url.getPath() + URI_QUERY_DELIMITER_CHAR +
-                            url.getQuery(), result -> requestTracker.decrementAndGet());
+                            url.getQuery(),
+                            connect ->  { proxyConnectionHandler.handle(connection); },
+                            result -> {
+                                System.out.println("Decrement request");
+                                requestTracker.decrementAndGet();
+                            });
         } catch (MalformedURLException ex) {
             throw new IllegalArgumentException();
         }
@@ -186,7 +191,6 @@ public abstract class AbstractConnector<T extends HttpEndpoint> extends Abstract
         options.setKeepAlive(endpoint.getHttpClientOptions().isKeepAlive());
         options.setIdleTimeout((int) (endpoint.getHttpClientOptions().getIdleTimeout() / 1000));
         options.setConnectTimeout((int) endpoint.getHttpClientOptions().getConnectTimeout());
-        options.setUsePooledBuffers(true);
         options.setMaxPoolSize(endpoint.getHttpClientOptions().getMaxConcurrentConnections());
         options.setTryUseCompression(endpoint.getHttpClientOptions().isUseCompression());
 
@@ -333,7 +337,7 @@ public abstract class AbstractConnector<T extends HttpEndpoint> extends Abstract
         LOGGER.info("Graceful shutdown of HTTP Client for endpoint[{}] target[{}] requests[{}]", endpoint.getName(), endpoint.getTarget(), requestTracker.get());
         long shouldEndAt = System.currentTimeMillis() + endpoint.getHttpClientOptions().getReadTimeout();
 
-        while (requestTracker.get() != 0 && System.currentTimeMillis() <= shouldEndAt) {
+        while (requestTracker.get() > 0 && System.currentTimeMillis() <= shouldEndAt) {
             TimeUnit.MILLISECONDS.sleep(100);
         }
 
@@ -350,8 +354,8 @@ public abstract class AbstractConnector<T extends HttpEndpoint> extends Abstract
         });
     }
 
-    private Function<Context, HttpClient> createHttpClient() {
-        return context -> vertx.createHttpClient(options);
+    private Function<Thread, HttpClient> createHttpClient() {
+        return thread -> vertx.createHttpClient(options);
     }
 
     private void printHttpClientConfiguration() {

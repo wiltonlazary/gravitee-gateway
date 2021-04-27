@@ -16,14 +16,14 @@
 package io.gravitee.gateway.standalone.grpc;
 
 import io.gravitee.gateway.grpc.helloworld.GreeterGrpc;
-import io.gravitee.gateway.grpc.manualflowcontrol.HelloRequest;
-import io.gravitee.gateway.grpc.manualflowcontrol.StreamingGreeterGrpc;
+import io.gravitee.gateway.grpc.helloworld.HelloReply;
 import io.gravitee.gateway.standalone.AbstractGatewayTest;
 import io.gravitee.gateway.standalone.junit.annotation.ApiDescriptor;
 import io.gravitee.gateway.standalone.junit.rules.ApiDeployer;
 import io.grpc.ManagedChannel;
 import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
+import io.grpc.stub.StreamObserver;
 import io.vertx.core.Vertx;
 import io.vertx.core.VertxOptions;
 import io.vertx.grpc.VertxChannelBuilder;
@@ -49,7 +49,7 @@ public class GrpcNoEndpointTest extends AbstractGatewayTest {
 
     @Test
     public void simple_grpc_request() throws InterruptedException {
-        Vertx vertx = Vertx.vertx(new VertxOptions().setPreferNativeTransport(true));
+        Vertx vertx = Vertx.vertx();
 
         // Wait for result
         CountDownLatch latch = new CountDownLatch(1);
@@ -57,22 +57,34 @@ public class GrpcNoEndpointTest extends AbstractGatewayTest {
         // Prepare gRPC Client
         ManagedChannel channel = VertxChannelBuilder
                 .forAddress(vertx, "localhost", 8082)
-                .usePlaintext(true)
+                .usePlaintext()
                 .build();
 
         // Get a stub to use for interacting with the remote service
-        GreeterGrpc.GreeterVertxStub stub = GreeterGrpc.newVertxStub(channel);
+        GreeterGrpc.GreeterStub stub = GreeterGrpc.newStub(channel);
 
         io.gravitee.gateway.grpc.helloworld.HelloRequest request = io.gravitee.gateway.grpc.helloworld.HelloRequest.newBuilder().setName("David").build();
 
         // Call the remote service
-        stub.sayHello(request, ar -> {
+        stub.sayHello(request, new StreamObserver<>() {
 
-            Assert.assertFalse(ar.succeeded());
-            Assert.assertEquals(StatusRuntimeException.class, ar.cause().getClass());
-            Assert.assertEquals(Status.Code.UNAVAILABLE, ((StatusRuntimeException) ar.cause()).getStatus().getCode());
+            @Override
+            public void onNext(HelloReply helloReply) {
+                Assert.fail();
+            }
 
-            latch.countDown();
+            @Override
+            public void onError(Throwable throwable) {
+                Assert.assertNotNull(throwable);
+                Assert.assertEquals(StatusRuntimeException.class, throwable.getClass());
+                Assert.assertEquals(Status.Code.UNAVAILABLE, ((StatusRuntimeException) throwable).getStatus().getCode());
+
+                latch.countDown();
+            }
+
+            @Override
+            public void onCompleted() {
+            }
         });
 
         Assert.assertTrue(latch.await(10, TimeUnit.SECONDS));

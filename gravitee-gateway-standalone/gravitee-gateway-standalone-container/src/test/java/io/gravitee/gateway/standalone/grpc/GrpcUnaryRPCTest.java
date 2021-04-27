@@ -22,9 +22,9 @@ import io.gravitee.gateway.standalone.AbstractGatewayTest;
 import io.gravitee.gateway.standalone.junit.annotation.ApiDescriptor;
 import io.gravitee.gateway.standalone.junit.rules.ApiDeployer;
 import io.grpc.ManagedChannel;
+import io.grpc.stub.StreamObserver;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Handler;
-import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
 import io.vertx.grpc.VertxChannelBuilder;
 import io.vertx.grpc.VertxServer;
@@ -44,7 +44,7 @@ import java.util.concurrent.TimeUnit;
  * @author GraviteeSource Team
  */
 @ApiDescriptor("/io/gravitee/gateway/standalone/grpc/hello-world.json")
-public class GrpcHelloWorldTest extends AbstractGatewayTest {
+public class GrpcUnaryRPCTest extends AbstractGatewayTest {
 
     @Rule
     public final TestRule chain = RuleChain.outerRule(new ApiDeployer(this));
@@ -54,10 +54,12 @@ public class GrpcHelloWorldTest extends AbstractGatewayTest {
         Vertx vertx = Vertx.vertx();
 
         // Prepare gRPC Server
-        GreeterGrpc.GreeterVertxImplBase service = new GreeterGrpc.GreeterVertxImplBase() {
+        GreeterGrpc.GreeterImplBase service = new GreeterGrpc.GreeterImplBase() {
+
             @Override
-            public void sayHello(HelloRequest request, Promise<HelloReply> future) {
-                future.complete(HelloReply.newBuilder().setMessage("Hello " + request.getName()).build());
+            public void sayHello(HelloRequest request, StreamObserver<HelloReply> responseObserver) {
+                responseObserver.onNext(HelloReply.newBuilder().setMessage("Hello " + request.getName()).build());
+                responseObserver.onCompleted();
             }
         };
 
@@ -72,24 +74,39 @@ public class GrpcHelloWorldTest extends AbstractGatewayTest {
         // Prepare gRPC Client
         ManagedChannel channel = VertxChannelBuilder
                 .forAddress(vertx, "localhost", 8082)
-                .usePlaintext(true)
+                .usePlaintext()
                 .build();
 
         // Start is asynchronous
-        rpcServer.start(new Handler<AsyncResult<Void>>() {
+        rpcServer.start(new Handler<>() {
             @Override
             public void handle(AsyncResult<Void> event) {
                 // Get a stub to use for interacting with the remote service
-                GreeterGrpc.GreeterVertxStub stub = GreeterGrpc.newVertxStub(channel);
+                GreeterGrpc.GreeterStub stub = GreeterGrpc.newStub(channel);
 
                 HelloRequest request = HelloRequest.newBuilder().setName("David").build();
 
                 // Call the remote service
-                stub.sayHello(request, ar -> {
-                    Assert.assertTrue(ar.succeeded());
-                    Assert.assertEquals("Hello David", ar.result().getMessage());
+                stub.sayHello(request, new StreamObserver<>() {
+                    private HelloReply helloReply;
 
-                    latch.countDown();
+                    @Override
+                    public void onNext(HelloReply helloReply) {
+                        this.helloReply = helloReply;
+                    }
+
+                    @Override
+                    public void onError(Throwable throwable) {
+                        Assert.fail();
+                    }
+
+                    @Override
+                    public void onCompleted() {
+                        Assert.assertNotNull(helloReply);
+                        Assert.assertEquals("Hello David", helloReply.getMessage());
+
+                        latch.countDown();
+                    }
                 });
             }
         });
