@@ -15,6 +15,7 @@
  */
 package io.gravitee.gateway.standalone.junit.stmt;
 
+import io.gravitee.alert.api.event.Event;
 import io.gravitee.definition.jackson.datatype.GraviteeMapper;
 import io.gravitee.definition.model.Api;
 import io.gravitee.definition.model.EndpointGroup;
@@ -24,10 +25,15 @@ import io.gravitee.gateway.standalone.ApiLoaderInterceptor;
 import io.gravitee.gateway.standalone.GatewayContainer;
 import io.gravitee.gateway.standalone.junit.annotation.ApiDescriptor;
 import io.gravitee.gateway.standalone.policy.PolicyRegister;
+import io.gravitee.node.api.NodeMonitoringRepository;
+import io.gravitee.node.monitoring.NoOpNodeMonitoringRepository;
 import io.gravitee.plugin.core.api.ConfigurablePluginManager;
 import io.gravitee.plugin.policy.PolicyPlugin;
 import io.gravitee.repository.management.api.ApiKeyRepository;
+import io.gravitee.repository.management.api.EventRepository;
+import io.gravitee.repository.ratelimit.api.RateLimitRepository;
 import org.junit.runners.model.Statement;
+import org.mockito.Mockito;
 import org.springframework.beans.factory.support.DefaultListableBeanFactory;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.core.ResolvableType;
@@ -58,6 +64,11 @@ public class ApiDeployerStatement extends Statement {
 
         GatewayContainer container = new GatewayContainer();
 
+        DefaultListableBeanFactory beanFactory = (DefaultListableBeanFactory) ((ConfigurableApplicationContext) container.applicationContext()).getBeanFactory();
+        beanFactory.registerSingleton("nodeMonitoringRepository", new NoOpNodeMonitoringRepository());
+        beanFactory.registerSingleton("eventRepository", Mockito.mock(EventRepository.class));
+        beanFactory.registerSingleton("rateLimitRepository", Mockito.mock(RateLimitRepository.class));
+
         if (target instanceof PolicyRegister) {
             String[] beanNamesForType = container.applicationContext().getBeanNamesForType(
                     ResolvableType.forClassWithGenerics(ConfigurablePluginManager.class, PolicyPlugin.class));
@@ -69,8 +80,7 @@ public class ApiDeployerStatement extends Statement {
         }
 
         if (target instanceof PolicyFactory) {
-            DefaultListableBeanFactory beanFactory = (DefaultListableBeanFactory) ((ConfigurableApplicationContext) container.applicationContext()).getBeanFactory();
-            String [] beanNames = container.applicationContext().getBeanNamesForType(PolicyFactory.class);
+            String[] beanNames = container.applicationContext().getBeanNamesForType(PolicyFactory.class);
             String oldBeanName = beanNames[0];
 
             beanFactory.destroyBean(oldBeanName, beanFactory.getBean(oldBeanName));
@@ -82,8 +92,8 @@ public class ApiDeployerStatement extends Statement {
         }
 
         container.start();
-        Thread.sleep(1000);
-        
+        //Thread.sleep(1000);
+
         ApiManager apiManager = container.applicationContext().getBean(ApiManager.class);
         Api api = loadApi(target.getClass().getAnnotation(ApiDescriptor.class).value());
 
