@@ -28,7 +28,6 @@ import io.grpc.stub.StreamObserver;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
-import io.vertx.core.VertxOptions;
 import io.vertx.grpc.VertxChannelBuilder;
 import io.vertx.grpc.VertxServer;
 import io.vertx.grpc.VertxServerBuilder;
@@ -102,7 +101,7 @@ public class GrpcBidirectionalStreamingTest extends AbstractGatewayTest {
                 .build();
 
         // Start is asynchronous
-        rpcServer.start(new Handler<AsyncResult<Void>>() {
+        rpcServer.start(new Handler<>() {
             @Override
             public void handle(AsyncResult<Void> event) {
                 // Get a stub to use for interacting with the remote service

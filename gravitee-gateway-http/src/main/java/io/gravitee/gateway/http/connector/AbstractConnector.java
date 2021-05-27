@@ -141,11 +141,8 @@ public abstract class AbstractConnector<T extends HttpEndpoint> extends Abstract
             connection.connect(client, port, url.getHost(),
                     (url.getQuery() == null) ? url.getPath() : url.getPath() + URI_QUERY_DELIMITER_CHAR +
                             url.getQuery(),
-                            connect ->  { proxyConnectionHandler.handle(connection); },
-                            result -> {
-                                System.out.println("Decrement request");
-                                requestTracker.decrementAndGet();
-                            });
+                            connect -> proxyConnectionHandler.handle(connection),
+                            result -> requestTracker.decrementAndGet());
         } catch (MalformedURLException ex) {
             throw new IllegalArgumentException();
         }

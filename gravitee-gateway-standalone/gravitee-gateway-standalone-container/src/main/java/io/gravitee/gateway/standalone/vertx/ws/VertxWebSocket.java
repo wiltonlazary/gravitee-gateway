@@ -22,6 +22,10 @@ import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.http.ServerWebSocket;
 
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
+import java.util.function.Function;
+
 /**
  * @author David BRASSELY (david.brassely at graviteesource.com)
  * @author GraviteeSource Team
@@ -39,14 +43,20 @@ class VertxWebSocket implements WebSocket {
     }
 
     @Override
-    public WebSocket upgrade() {
-        httpServerRequest.toWebSocket(event -> {
-            if (event.succeeded()) {
-                websocket = event.result();
-                upgraded = true;
-            }
-        });
-        return this;
+    public CompletableFuture<WebSocket> upgrade() {
+        return httpServerRequest.toWebSocket()
+                .map((Function<ServerWebSocket, WebSocket>) serverWebSocket -> {
+                    websocket = serverWebSocket;
+                    upgraded = true;
+                    return VertxWebSocket.this;
+                })
+                .onFailure(new io.vertx.core.Handler<Throwable>() {
+                    @Override
+                    public void handle(Throwable event) {
+                        System.out.println("Error:" + event);
+                    }
+                })
+                .toCompletionStage().toCompletableFuture();
     }
 
     @Override
@@ -59,14 +69,19 @@ class VertxWebSocket implements WebSocket {
 
     @Override
     public WebSocket write(io.gravitee.gateway.api.ws.WebSocketFrame frame) {
-        if (frame.type() == io.gravitee.gateway.api.ws.WebSocketFrame.Type.BINARY && frame.isFinal()) {
-            websocket.writeFrame(io.vertx.core.http.WebSocketFrame.binaryFrame(Buffer.buffer(frame.data().getBytes()), frame.isFinal()));
-        } else if (frame.type() == io.gravitee.gateway.api.ws.WebSocketFrame.Type.TEXT && frame.isFinal()) {
-            websocket.writeFrame(io.vertx.core.http.WebSocketFrame.textFrame(frame.data().toString(), frame.isFinal()));
-        } else if (frame.type() == WebSocketFrame.Type.CONTINUATION) {
-            websocket.writeFrame(io.vertx.core.http.WebSocketFrame.continuationFrame(Buffer.buffer(frame.data().toString()), frame.isFinal()));
+        if (upgraded) {
+            if (frame.type() == io.gravitee.gateway.api.ws.WebSocketFrame.Type.BINARY && frame.isFinal()) {
+                websocket.writeFrame(io.vertx.core.http.WebSocketFrame.binaryFrame(Buffer.buffer(frame.data().getBytes()), frame.isFinal()));
+            } else if (frame.type() == io.gravitee.gateway.api.ws.WebSocketFrame.Type.TEXT && frame.isFinal()) {
+                websocket.writeFrame(io.vertx.core.http.WebSocketFrame.textFrame(frame.data().toString(), frame.isFinal()));
+            } else if (frame.type() == WebSocketFrame.Type.CONTINUATION) {
+                websocket.writeFrame(io.vertx.core.http.WebSocketFrame.continuationFrame(Buffer.buffer(frame.data().toString()), frame.isFinal()));
+            } else if (frame.type() == WebSocketFrame.Type.PING) {
+                websocket.writeFrame(io.vertx.core.http.WebSocketFrame.pingFrame(Buffer.buffer(frame.data().toString())));
+            } else if (frame.type() == WebSocketFrame.Type.PONG) {
+                websocket.writeFrame(io.vertx.core.http.WebSocketFrame.pongFrame(Buffer.buffer(frame.data().toString())));
+            }
         }
-
         return this;
     }
 
@@ -80,16 +95,20 @@ class VertxWebSocket implements WebSocket {
 
     @Override
     public WebSocket frameHandler(Handler<io.gravitee.gateway.api.ws.WebSocketFrame> frameHandler) {
-        websocket.frameHandler(frame -> frameHandler.handle(new VertxWebSocketFrame(frame)));
+        if (upgraded) {
+            websocket.frameHandler(frame -> frameHandler.handle(new VertxWebSocketFrame(frame)));
+        }
         return this;
     }
 
     @Override
     public WebSocket closeHandler(Handler<Void> closeHandler) {
-        websocket.closeHandler(event -> {
-            closed = true;
-            closeHandler.handle(event);
-        });
+        if (upgraded) {
+            websocket.closeHandler(event -> {
+                closed = true;
+                closeHandler.handle(event);
+            });
+        }
         return this;
     }
 

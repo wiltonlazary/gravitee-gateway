@@ -25,7 +25,6 @@ import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
 import io.grpc.stub.StreamObserver;
 import io.vertx.core.Vertx;
-import io.vertx.core.VertxOptions;
 import io.vertx.grpc.VertxChannelBuilder;
 import org.junit.Assert;
 import org.junit.Rule;
