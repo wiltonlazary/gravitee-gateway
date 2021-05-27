@@ -73,17 +73,13 @@ public class GatewayNode extends AbstractNode {
     public List<Class<? extends LifecycleComponent>> components() {
         final List<Class<? extends LifecycleComponent>> components = new ArrayList<>();
 
-  //      components.add(NodeMonitoringReporterService.class);
+        components.add(NodeMonitoringReporterService.class);
         components.add(Reactor.class);
         components.add(VertxEmbeddedContainer.class);
         components.add(ClusterService.class);
 
         components.addAll(super.components());
 
-        //TODO: how to handle this while running unit tests ?
-        components.remove(NodeHealthCheckService.class);
-        components.remove(NodeInfosService.class);
-        components.remove(NodeMonitorService.class);
         components.add(AlertEventProducerManager.class);
         return components;
     }

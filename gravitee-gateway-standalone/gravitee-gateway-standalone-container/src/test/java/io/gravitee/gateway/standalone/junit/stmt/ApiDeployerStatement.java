@@ -21,16 +21,12 @@ import io.gravitee.definition.model.EndpointGroup;
 import io.gravitee.gateway.handlers.api.manager.ApiManager;
 import io.gravitee.gateway.policy.PolicyFactory;
 import io.gravitee.gateway.standalone.ApiLoaderInterceptor;
-import io.gravitee.gateway.standalone.GatewayContainer;
+import io.gravitee.gateway.standalone.container.GatewayTestContainer;
 import io.gravitee.gateway.standalone.junit.annotation.ApiDescriptor;
 import io.gravitee.gateway.standalone.policy.PolicyRegister;
-import io.gravitee.node.monitoring.NoOpNodeMonitoringRepository;
 import io.gravitee.plugin.core.api.ConfigurablePluginManager;
 import io.gravitee.plugin.policy.PolicyPlugin;
-import io.gravitee.repository.management.api.EventRepository;
-import io.gravitee.repository.ratelimit.api.RateLimitRepository;
 import org.junit.runners.model.Statement;
-import org.mockito.Mockito;
 import org.springframework.beans.factory.support.DefaultListableBeanFactory;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.core.ResolvableType;
@@ -59,12 +55,9 @@ public class ApiDeployerStatement extends Statement {
         URL home = ApiDeployerStatement.class.getResource("/gravitee-01/");
         System.setProperty("gravitee.home", URLDecoder.decode(home.getPath(), StandardCharsets.UTF_8.name()));
 
-        GatewayContainer container = new GatewayContainer();
+        GatewayTestContainer container = new GatewayTestContainer();
 
         DefaultListableBeanFactory beanFactory = (DefaultListableBeanFactory) ((ConfigurableApplicationContext) container.applicationContext()).getBeanFactory();
-        beanFactory.registerSingleton("nodeMonitoringRepository", new NoOpNodeMonitoringRepository());
-        beanFactory.registerSingleton("eventRepository", Mockito.mock(EventRepository.class));
-        beanFactory.registerSingleton("rateLimitRepository", Mockito.mock(RateLimitRepository.class));
 
         if (target instanceof PolicyRegister) {
             String[] beanNamesForType = container.applicationContext().getBeanNamesForType(

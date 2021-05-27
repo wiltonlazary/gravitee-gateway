@@ -15,12 +15,6 @@
  */
 package io.gravitee.gateway.standalone.repository;
 
-import io.gravitee.node.api.NodeMonitoringRepository;
-import io.gravitee.repository.management.api.ApiRepository;
-import io.gravitee.repository.management.api.EventRepository;
-import org.mockito.Mock;
-import org.mockito.Mockito;
-import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 /**
@@ -29,19 +23,4 @@ import org.springframework.context.annotation.Configuration;
  */
 @Configuration
 public class RepositoryConfiguration {
-
-    @Bean
-    public ApiRepository apiRepository() {
-        return Mockito.mock(ApiRepository.class);
-    }
-
-    @Bean
-    public EventRepository eventRepository() {
-        return Mockito.mock(EventRepository.class);
-    }
-
-    @Bean
-    public NodeMonitoringRepository nodeMonitoringRepository() {
-        return Mockito.mock(NodeMonitoringRepository.class);
-    }
 }
