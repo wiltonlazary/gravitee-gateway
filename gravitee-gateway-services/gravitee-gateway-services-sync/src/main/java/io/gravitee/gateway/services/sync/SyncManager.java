@@ -16,6 +16,7 @@
 package io.gravitee.gateway.services.sync;
 
 import io.gravitee.common.service.AbstractService;
+import io.gravitee.gateway.services.sync.boot.LocalBootstrapService;
 import io.gravitee.gateway.services.sync.synchronizer.ApiSynchronizer;
 import io.gravitee.gateway.services.sync.synchronizer.DictionarySynchronizer;
 import io.gravitee.node.api.cluster.ClusterManager;
@@ -47,6 +48,9 @@ public class SyncManager extends AbstractService<SyncManager> {
     public static final int TIMEFRAME_AFTER_DELAY = 30000;
 
     @Autowired
+    private LocalBootstrapService localBootstrapService;
+
+    @Autowired
     private ApiSynchronizer apiSynchronizer;
 
     @Autowired
@@ -57,6 +61,9 @@ public class SyncManager extends AbstractService<SyncManager> {
 
     @Value("${services.sync.distributed:false}")
     private boolean distributed;
+
+    @Value("${services.sync.localBootstrap.enabled:false}")
+    private boolean localBootstrap;
 
     private final AtomicLong counter = new AtomicLong(0);
     private long lastRefreshAt = -1;
@@ -77,12 +84,18 @@ public class SyncManager extends AbstractService<SyncManager> {
     @Override
     protected void doStart() throws Exception {
         super.doStart();
+
+        if (localBootstrap) {
+            localBootstrapService.start();
+        }
+
         apiSynchronizer.start();
         dictionarySynchronizer.start();
     }
 
     @Override
     protected void doStop() throws Exception {
+
         apiSynchronizer.stop();
         dictionarySynchronizer.stop();
 
@@ -92,6 +105,10 @@ public class SyncManager extends AbstractService<SyncManager> {
 
         if (scheduler != null) {
             scheduler.shutdown();
+        }
+
+        if (localBootstrap) {
+            localBootstrapService.stop();
         }
 
         super.doStop();
@@ -140,6 +157,10 @@ public class SyncManager extends AbstractService<SyncManager> {
             // We refresh the date even if process did not run (not a master node) to ensure that we sync the same way as
             // soon as the node is becoming the master later.
             lastRefreshAt = nextLastRefreshAt;
+        }
+
+        if(localBootstrap) {
+            localBootstrapService.backup();
         }
     }
 

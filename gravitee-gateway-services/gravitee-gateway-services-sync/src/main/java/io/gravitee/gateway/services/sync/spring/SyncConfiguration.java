@@ -15,11 +15,16 @@
  */
 package io.gravitee.gateway.services.sync.spring;
 
+import com.hazelcast.core.HazelcastInstance;
+import com.hazelcast.core.IMap;
+import io.gravitee.gateway.dictionary.model.Dictionary;
+import io.gravitee.gateway.handlers.api.definition.Api;
 import io.gravitee.gateway.services.sync.SyncManager;
-import io.gravitee.gateway.services.sync.cache.CacheManager;
+import io.gravitee.gateway.services.sync.boot.LocalBootstrapService;
 import io.gravitee.gateway.services.sync.cache.configuration.LocalCacheConfiguration;
 import io.gravitee.gateway.services.sync.synchronizer.ApiSynchronizer;
 import io.gravitee.gateway.services.sync.synchronizer.DictionarySynchronizer;
+import io.gravitee.repository.management.model.ApiKey;
 import io.reactivex.annotations.NonNull;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -67,11 +72,6 @@ public class SyncConfiguration {
     }
 
     @Bean
-    public CacheManager cacheManager() {
-        return new CacheManager();
-    }
-
-    @Bean
     public ApiSynchronizer apiSynchronizer() {
         return new ApiSynchronizer();
     }
@@ -79,5 +79,30 @@ public class SyncConfiguration {
     @Bean
     public DictionarySynchronizer dictionarySynchronizer() {
         return new DictionarySynchronizer();
+    }
+
+    @Bean("apiMap")
+    public IMap<String, Api> apiMap(HazelcastInstance hzInstance) {
+        return hzInstance.getMap("apis");
+    }
+
+    @Bean("apiKeyMap")
+    public IMap<String, ApiKey> apiKeyMap(HazelcastInstance hzInstance) {
+        return hzInstance.getMap("apikeys");
+    }
+
+    @Bean("subscriptionMap")
+    public IMap<String, Object> subscriptionMap(HazelcastInstance hzInstance) {
+        return hzInstance.getMap("subscriptions");
+    }
+
+    @Bean("dictionaryMap")
+    public IMap<String, Dictionary> dictionaryMap(HazelcastInstance hzInstance) {
+        return hzInstance.getMap("dictionaries");
+    }
+
+    @Bean
+    public LocalBootstrapService localBootstrapService() {
+        return new LocalBootstrapService();
     }
 }

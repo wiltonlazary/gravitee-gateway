@@ -34,9 +34,9 @@ import java.util.Optional;
 public class SubscriptionRepositoryWrapper implements SubscriptionRepository {
 
     private final SubscriptionRepository wrapped;
-    private final Map<String, Subscription> cache;
+    private final Map<String, Object> cache;
 
-    public SubscriptionRepositoryWrapper(final SubscriptionRepository wrapped, final Map<String, Subscription> cache) {
+    public SubscriptionRepositoryWrapper(final SubscriptionRepository wrapped, final Map<String, Object> cache) {
         this.wrapped = wrapped;
         this.cache = cache;
     }
@@ -74,7 +74,7 @@ public class SubscriptionRepositoryWrapper implements SubscriptionRepository {
             return this.wrapped.search(criteria);
         } else {
             String key = criteria.getApis().iterator().next() + '-' + criteria.getClientId();
-            Subscription subscription = this.cache.get(key);
+            Subscription subscription = (Subscription) this.cache.get(key);
             return (subscription != null) ? Collections.singletonList(subscription) : null;
         }
     }

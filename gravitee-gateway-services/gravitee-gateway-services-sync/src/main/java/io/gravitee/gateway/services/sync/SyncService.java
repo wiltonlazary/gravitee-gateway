@@ -76,7 +76,7 @@ public class SyncService extends AbstractService {
             if (enabled) {
                 super.doStart();
 
-                logger.info("Sync service has been initialized with delay [{}{}]", delay, unit.name());
+                logger.info("Sync service has been initialized with delay [{} {}]", delay, unit.name());
 
                 logger.info("Associate a new HTTP handler on {}", PATH);
 

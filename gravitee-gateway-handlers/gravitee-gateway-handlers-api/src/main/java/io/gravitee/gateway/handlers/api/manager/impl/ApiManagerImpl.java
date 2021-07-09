@@ -43,7 +43,7 @@ import java.util.stream.Collectors;
  * @author David BRASSELY (david.brassely at graviteesource.com)
  * @author GraviteeSource Team
  */
-public class ApiManagerImpl extends MapListenerAdapter<String, Api> implements ApiManager, InitializingBean {
+public class ApiManagerImpl implements ApiManager {
 
     private final Logger logger = LoggerFactory.getLogger(ApiManagerImpl.class);
     private static final int PARALLELISM = ForkJoinPool.commonPool().getParallelism();
@@ -54,35 +54,7 @@ public class ApiManagerImpl extends MapListenerAdapter<String, Api> implements A
     @Autowired
     private GatewayConfiguration gatewayConfiguration;
 
-    @Autowired
-    private HazelcastInstance hzInstance;
-
-    @Autowired
-    private ClusterManager clusterManager;
-
-    private Map<String, Api> apis;
-
-    @Override
-    public void afterPropertiesSet() throws Exception {
-        apis = hzInstance.getMap("apis");
-        ((IMap) apis).addEntryListener(this, true);
-    }
-
-    @Override
-    public void onEntryEvent(EntryEvent<String, Api> event) {
-        // Replication is only done for secondary nodes
-        if (!clusterManager.isMasterNode()) {
-            if (event.getEventType() == EntryEventType.ADDED) {
-                register(event.getValue());
-            } else if (event.getEventType() == EntryEventType.UPDATED) {
-                register(event.getValue());
-            } else if (event.getEventType() == EntryEventType.REMOVED ||
-                    event.getEventType() == EntryEventType.EVICTED ||
-                    event.getEventType() == EntryEventType.EXPIRED) {
-                unregister(event.getKey());
-            }
-        }
-    }
+    private Map<String, Api> apis = new ConcurrentHashMap<>();
 
     private boolean register(Api api, boolean force) {
         // Get deployed API

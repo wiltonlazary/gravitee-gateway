@@ -46,16 +46,6 @@ public abstract class AbstractSynchronizer extends AbstractService<AbstractSynch
     @Autowired
     protected ExecutorService executor;
 
-    @Override
-    protected void doStart() throws Exception {
-        super.doStart();
-    }
-
-    @Override
-    protected void doStop() throws Exception {
-        super.doStop();
-    }
-
     /**
      * Synchronize the elements retrieving events from the datasource.
      *
