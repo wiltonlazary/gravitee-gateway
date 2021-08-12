@@ -43,10 +43,10 @@ public class SyncService extends AbstractService {
 
     private final static String PATH = "/sync";
 
-    @Value("${services.apikeyscache.delay:10000}")
+    @Value("${services.sync.delay:5000}")
     private int delay;
 
-    @Value("${services.apikeyscache.unit:MILLISECONDS}")
+    @Value("${services.sync.unit:MILLISECONDS}")
     private TimeUnit unit;
 
     @Value("${services.sync.enabled:true}")
@@ -54,9 +54,6 @@ public class SyncService extends AbstractService {
 
     @Value("${services.local.enabled:false}")
     private boolean localRegistryEnabled;
-
-    @Autowired
-    private ApiManager apiManager;
 
     @Autowired
     private SyncManager syncManager;
@@ -76,7 +73,7 @@ public class SyncService extends AbstractService {
             if (enabled) {
                 super.doStart();
 
-                logger.info("Sync service has been initialized with delay [{}{}]", delay, unit.name());
+                logger.info("Sync service has been initialized with delay [{} {}]", delay, unit.name());
 
                 logger.info("Associate a new HTTP handler on {}", PATH);
 
@@ -88,9 +85,6 @@ public class SyncService extends AbstractService {
                 // Start tasks
                 apiKeysCacheService.start();
                 subscriptionsCacheService.start();
-
-                // Force refresh based on internal state of the api manager (useful if apis definitions are maintained across the cluster).
-                apiManager.refresh();
 
                 // Initialize the sync manager.
                 syncManager.start();
