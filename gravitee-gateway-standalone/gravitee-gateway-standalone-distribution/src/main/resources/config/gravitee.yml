@@ -277,7 +277,7 @@ services:
 #    storeSystemProperties: true
 
   tracing:
-    enabled: false
+    enabled: true
     type: jaeger
     jaeger:
       host: localhost
