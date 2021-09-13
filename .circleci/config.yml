@@ -29,6 +29,20 @@ parameters:
     type: string
     default: ''
     description: "What is the version number of the release you want to replay? (Mandatory, only for the 'standalone_release_replay' Workflow / see 'gio_action' pipeline parameter)"
+  docker_latest:
+    type: boolean
+    default: true
+    description: "Is the docker published image a latest?"
+  snyk_test:
+    type: boolean
+    default: false
+    description: "Do we need to publish images in private azure registry for security testing?"
+  repo_test:
+    type: enum
+    enum: [gateway, management-webui, portal-ui, rest-api]
+    default: gateway
+    description: "what repository in azure we need to publish docker image"
+
 orbs:
   slack: circleci/slack@4.2.1
   gravitee: gravitee-io/gravitee@1.0
