@@ -29,7 +29,7 @@ parameters:
     type: string
     default: ''
     description: "What is the version number of the release you want to replay? (Mandatory, only for the 'standalone_release_replay' Workflow / see 'gio_action' pipeline parameter)"
-   docker_latest:
+  docker_latest:
     type: boolean
     default: true
     description: "Is the docker published image a latest?"
