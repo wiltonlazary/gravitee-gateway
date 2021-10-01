@@ -349,7 +349,7 @@ workflows:
           # container_gun_image_tag: '11.0.3-jdk-stretch'
           container_size: 'large'
 
-      Docker_Env_Test:
+  Docker_Env_Test:
     when:
       and:
         - equal: [ env_test, << pipeline.parameters.gio_action >> ]
