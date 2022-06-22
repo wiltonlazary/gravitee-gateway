@@ -1,0 +1,8 @@
+{
+  "extends": "../cypress-config.json",
+  "env": {
+    "managementUI": "http://localhost:8084",
+    "gatewayServer": "http://localhost:8082",
+    "portalApi": "/portal/environments/DEFAULT"
+  }
+}

@@ -1,26 +1,27 @@
-= Gravitee.io API Management - Gateway
 
-ifdef::env-github[]
-image:https://ci.gravitee.io/buildStatus/icon?job=gravitee-io/gravitee-gateway/master["Build status", link="https://ci.gravitee.io/job/gravitee-io/job/gravitee-gateway"]
-image:https://badges.gitter.im/Join Chat.svg["Gitter", link="https://gitter.im/gravitee-io/gravitee-io?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge"]
-endif::[]
+= Gravitee.io API Management
+
+image:https://img.shields.io/badge/License-Apache%202.0-blue.svg["License", link="https://github.com/gravitee-io/gravitee-api-management/blob/master/LICENSE"]
+image:https://circleci.com/gh/gravitee-io/gravitee-api-management.svg?style=svg["CircleCI", link="https://circleci.com/gh/gravitee-io/gravitee-api-management"]
+
+image:./assets/gravitee-logo-cyan.svg["Gravitee.io",400]
 
 == Overview
 
-The gateway is the core component of the Gravitee.io platform. You can compare it to a "smart" proxy to understand its goal.
+Gravitee.io API Management is a flexible, lightweight and blazing-fast Open Source solution that helps your organization control who, when and how users access your APIs. Effortlessly manage the lifecycle of your APIs. Download API Management to document, discover and publish your APIs.
 
-Unlike traditional HTTP proxy, the gateway is able to apply policies (ie. rules) to both HTTP requests and responses according to your needs, meaning that you can enhance requests and responses processing by adding transformation, security, and many other crazy features!
+=== Features
+
+- Register your API : Create and register APIs in a matter of a few clicks to easily expose your secured APIs to internal and external consumers.
+- Configure policies using flows: Gravitee.io API Management provides over 50 pre-built policies to effectively shape traffic reaching the gateway according to your business requirements.
+- Developer portal: Build the portal that your developers want with a custom theme, full text search and API documentation.
+- Analytics dashboard: The out-of-the-box dashboards give you a 360-degree view of your API. You can also build your own dashboards from Gravitee.io or use all metrics with external tools like Grafana or Kibana.
+- Register applications: Users and administrators can register applications for consuming APIs with ease. Gravitee.io provides advanced dynamic client registration to effectively link API Management and Access Management.
+- Secured plan: Create contracts between your API consumers and APIs - building API products from your backend services.
 
 == Documentation
 
-You can find Gravitee.io API Management documentation from https://docs.gravitee.io/[Gravitee.io website].
+You can find Gravitee.io API Management's documentation on https://docs.gravitee.io/[Gravitee.io website].
 
-== Building
-
-```
-$ git clone https://github.com/gravitee-io/gravitee-gateway
-$ cd gravitee-gateway
-$ mvn clean compile exec:java -Pdev -pl gravitee-gateway-standalone/gravitee-gateway-standalone-container
-...
-<app starts and listens on port 8082>
-```
+== Community
+Got questions, suggestions or feedback? Why not join us on the https://community.gravitee.io/[community forum].

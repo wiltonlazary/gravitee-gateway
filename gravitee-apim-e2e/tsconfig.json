@@ -1,0 +1,28 @@
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "lib": ["ES2020", "dom"],
+    "types": ["./types", "cypress", "node", "node-fetch", "jsonwebtoken"],
+    "baseUrl": ".",
+    "resolveJsonModule": true,
+    "moduleResolution": "node",
+    "allowSyntheticDefaultImports": true,
+    "paths": {
+      "@fakers/*": ["ui-test/fixtures/fakers/*"],
+      "@keys/*": ["ui-test/fixtures/keys/*"],
+      "@model/*": ["ui-test/model/*"],
+      "@commands/*": ["ui-test/commands/*"],
+      "@management-fakers/*": ["lib/fixtures/management/*"],
+      "@management-apis/*": ["lib/management-webclient-sdk/src/lib/apis/*"],
+      "@client-conf/*": ["lib/configuration"],
+      "@management-models/*": ["lib/management-webclient-sdk/src/lib/models/*"],
+      "@portal-apis/*": ["lib/portal-webclient-sdk/src/lib/apis/*"],
+      "@portal-models/*": ["lib/portal-webclient-sdk/src/lib/models/*"],
+      "@api-test-resources/*": ["<rootDir>/api-test/resources/$1"],
+      "@lib/jest-utils": ["lib/jest-utils"],
+      "@lib/gateway": ["lib/gateway"],
+      "@portal-fakers/*": ["lib/fixtures/portal/*"]
+    }
+  },
+  "include": ["**/*.ts"]
+}
